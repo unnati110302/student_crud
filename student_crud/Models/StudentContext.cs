@@ -13,5 +13,6 @@ namespace student_crud.Models
         public DbSet<City> Cities { get; set; }
 
         public DbSet<StudentDAO> StudentDAOs { get; set; }
+
     }
 }

@@ -17,7 +17,7 @@ namespace student_crud.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<StudentDAO>>> GetStudents()
+        public async Task<ActionResult<IEnumerable<StudentDAO>>> GetStudents(int pageNumber = 1, int pageSize = 5, string search = "", string sortOrder = "none")
         {
             string sql = "SELECT a.ID, a.Code, a.Name, a.Email, a.Mobile, a.Address1, a.Address2, a.State, a.City, a.Gender, a.Status, " +
                 "a.IsActive, a.CreatedBy, a.CreatedOn, a.ModifiedBy, a.ModifiedOn, s.Name as StateName, c.Name as CityName " +
@@ -26,6 +26,15 @@ namespace student_crud.Controllers
                 "LEFT OUTER JOIN Cities c ON a.City = c.CId " +
                 "WHERE a.IsActive = 1";
 
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                sql += $" AND (a.Name LIKE '%{search}%' OR a.Email LIKE '%{search}%')";
+            }
+
+            if (sortOrder.ToLower() != "none") 
+            {
+                sql += $" ORDER BY a.Name {sortOrder}";
+            }
 
             var activeStudents = await _studentContext.StudentDAOs.FromSqlRaw(sql).ToListAsync();
             
@@ -34,7 +43,14 @@ namespace student_crud.Controllers
                 return NotFound();
             }
 
-            return activeStudents;
+            var totalCount = activeStudents.Count();
+
+            var paginatedStudents = await PaginatedList<StudentDAO>.Create(activeStudents, pageNumber, pageSize);
+
+            var totalPages = paginatedStudents.TotalPages;
+
+            return Ok(new { Data = paginatedStudents, TotalPages = totalPages });
+
         }
 
         [HttpGet("{id}")]
